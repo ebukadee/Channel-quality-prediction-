@@ -135,18 +135,31 @@ with c3:
 
 st.markdown("### Signal profile")
 left, right = st.columns([1.25, 1])
+
 with left:
-    chart_df = pd.DataFrame({
-        "Metric": ["SNR", "RSSI", "Interference", "Latency", "Bandwidth"],
-        "Normalized level": [
-            snr / 35 * 100,
-            (rssi + 110) / 70 * 100,
-            (-interference - 45) / 60 * 100,
-            (180 - latency) / 175 * 100,
-            bandwidth
-        ]
-    }).set_index("Metric")
-    st.bar_chart(chart_df)
+    # Custom HTML bars are used instead of st.bar_chart.
+    # This avoids Streamlit/Altair compatibility problems on some Render runtimes.
+    profile = [
+        ("SNR", np.clip(snr / 35 * 100, 0, 100)),
+        ("RSSI", np.clip((rssi + 110) / 70 * 100, 0, 100)),
+        ("Interference", np.clip((-interference - 45) / 60 * 100, 0, 100)),
+        ("Latency", np.clip((180 - latency) / 175 * 100, 0, 100)),
+        ("Bandwidth", np.clip(bandwidth, 0, 100)),
+    ]
+    bars = ""
+    for name, value in profile:
+        bars += f"""
+        <div style="margin:12px 0">
+          <div style="display:flex;justify-content:space-between;color:#91a8bb;font-size:.85rem">
+            <span>{name}</span><span>{value:.0f}%</span>
+          </div>
+          <div style="height:9px;background:#13283a;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:{value:.1f}%;background:#16d9ef;border-radius:99px"></div>
+          </div>
+        </div>
+        """
+    st.markdown(bars, unsafe_allow_html=True)
+
 with right:
     st.markdown("#### Recommendation engine")
     for item in advice(snr, rssi, interference, latency, bandwidth):
